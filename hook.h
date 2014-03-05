@@ -1,6 +1,8 @@
 #ifndef __HOOK_H__
 #define __HOOK_H__
 
+#define NF_IP_NUMHOOKS
+
 enum {
 	NH_SET_FILTER 		= 1,
 	NH_RM_FILTER 		= 2,

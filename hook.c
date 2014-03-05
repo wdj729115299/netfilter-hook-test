@@ -343,19 +343,19 @@ static ssize_t nh_write(struct file *file, const char __user *buf, size_t count,
 		case TO_INTERFACE:
 			dev = skb->dev;
 
-			spin_lock_irqsave(&dev->_xmit_lock, flags);
-			dev->xmit_lock_owner = smp_processor_id();
+			spin_lock_irqsave(&dev->_tx->_xmit_lock, flags);
+			dev->_tx->xmit_lock_owner = smp_processor_id();
 
 			if (!netif_queue_stopped(skb->dev)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,18)
 			    && !netif_subqueue_stopped(skb->dev, skb)
 #endif
 			   ) {
-				ret = skb->dev->hard_start_xmit(skb, skb->dev);
+				ret = skb->dev->netdev_ops->ndo_start_xmit(skb, skb->dev);
 			}
 
-			dev->xmit_lock_owner = -1;
-			spin_unlock_irqrestore(&dev->_xmit_lock, flags);
+			dev->_tx->xmit_lock_owner = -1;
+			spin_unlock_irqrestore(&dev->_tx->_xmit_lock, flags);
 
 			break;
 		case TO_INTERFACE_QUEUE:
@@ -399,13 +399,13 @@ wait_skb:
 		goto wait_skb;
 
 	/* Save the dest mac now, it will be lost otherwise */
-	if (skb->dst && skb->dst->neighbour) {
+	if (skb_dst(skb) && dst_get_neighbour(skb_dst(skb))) {
 		struct ethhdr *eth;
 
 		skb_push(skb, sizeof(struct ethhdr));
 		eth = (struct ethhdr *)skb->data;
 		skb_pull(skb, sizeof(struct ethhdr));
-		memcpy(eth->h_dest, skb->dst->neighbour->ha, ETH_ALEN);
+		memcpy(eth->h_dest, dst_get_neighbour(skb_dst(skb))->ha, ETH_ALEN);
 	}
 
 	skb_push(skb, ETH_HLEN);
@@ -427,7 +427,7 @@ wait_skb:
 	return ret;
 }
 
-static int nh_ioctl(struct inode *inode, struct file *file,
+static long nh_ioctl(struct file *file,
 		    unsigned int req, unsigned long pointer)
 {
 	struct nh_private *p;
@@ -505,7 +505,7 @@ static const struct file_operations net_hook_fops = {
 	.owner		= THIS_MODULE,
 	.open		= nh_open,
 	.release	= nh_release,
-	.ioctl		= nh_ioctl,
+	.unlocked_ioctl		= nh_ioctl,
 	.read		= nh_read,
 	.write		= nh_write,
 };

@@ -1,0 +1,1 @@
+cmd_/home/wdj/github_source/netfilter-hook/hk.ko := ld -r -m elf_i386 -T /usr/src/linux-headers-3.2.0-58-generic-pae/scripts/module-common.lds --build-id  -o /home/wdj/github_source/netfilter-hook/hk.ko /home/wdj/github_source/netfilter-hook/hk.o /home/wdj/github_source/netfilter-hook/hk.mod.o
